@@ -35,16 +35,7 @@ parse(Text) ->
 parse_file(Path) ->
   case file:open(Path, [read]) of
     {ok, IoDevice} ->
-      %% Providing `{1, 1}` as the initial location ensures
-      %% that the returned forms include column numbers, as well.
-      %% The specs for the epp_dodger API are slightly incorrect.
-      %% A bug has been reported (see https://bugs.erlang.org/browse/ERL-1005)
-      %% Meanwhile, let's trick Dialyzer with an apply.
-      {ok, Forms} = erlang:apply(epp_dodger, parse, [IoDevice, {1, 1}]),
-      Tree = erl_syntax:form_list(Forms),
-      %% Reset file pointer position.
-      {ok, 0} = file:position(IoDevice, 0),
-      {ok, Extra} = parse_attribute_pois(IoDevice, [], {1, 1}),
+      {ok, Tree, Extra} = parse_pois(IoDevice, {[], []}, {1, 1}),
       ok = file:close(IoDevice),
       POIs = points_of_interest(Tree),
       {ok, Extra ++ POIs};
@@ -56,25 +47,25 @@ parse_file(Path) ->
 %% Internal Functions
 %%==============================================================================
 
--spec parse_attribute_pois(io:device(), [poi()], erl_anno:location()) ->
+-spec parse_pois(io:device(), {any(), [poi()]}, erl_anno:location()) ->
    {ok, [poi()]} | {error, any()}.
-parse_attribute_pois(IoDevice, Acc, StartLoc) ->
+parse_pois(IoDevice, {Forms, Acc}, StartLoc) ->
   case io:scan_erl_form(IoDevice, "", StartLoc) of
     {ok, Tokens, EndLoc} ->
-      case erl_parse:parse_form(Tokens) of
-        {ok, Form} ->
+      case els_dodger:quick_parser(Tokens) of
+        none ->
+          parse_pois(IoDevice, {Forms, Acc}, EndLoc);
+        Form ->
           POIs = find_attribute_pois(Form, Tokens),
-          parse_attribute_pois(IoDevice, POIs ++ Acc, EndLoc);
-        {error, _Error} ->
-          parse_attribute_pois(IoDevice, Acc, EndLoc)
+          parse_pois(IoDevice, {[Form|Forms], POIs ++ Acc}, EndLoc)
       end;
     {eof, _} ->
-      {ok, Acc};
+      {ok, erl_syntax:form_list(lists:reverse(Forms)), Acc};
     {error, ErrorInfo, EndLoc} ->
       lager:warning( "Could not parse extra information [end_loc=p] ~p"
                    , [EndLoc, ErrorInfo]
                    ),
-      {ok, Acc}
+      {ok, Forms, Acc}
   end.
 
 -spec find_attribute_pois(erl_parse:abstract_form(), [erl_scan:token()]) ->

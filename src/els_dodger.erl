@@ -77,12 +77,15 @@
 
 -module(els_dodger).
 
+-compile([nowarn_missing_spec, nowarn_missing_spec_all]).
+
 -export([parse_file/1, quick_parse_file/1, parse_file/2,
          quick_parse_file/2, parse/1, quick_parse/1, parse/2,
          quick_parse/2, parse/3, quick_parse/3, parse_form/2,
          parse_form/3, quick_parse_form/2, quick_parse_form/3,
          format_error/1, tokens_to_string/1]).
 
+-export([ quick_parser/1 ]).
 
 %% The following should be: 1) pseudo-uniquely identifiable, and 2)
 %% cause nice looking error messages when the parser has to give up.
@@ -494,6 +497,9 @@ parse_tokens(Ts, Fix) ->
 %% ---------------------------------------------------------------------
 %% Quick scanning/parsing - deletes macro definitions and other
 %% preprocessor directives, and replaces all macro calls with atoms.
+
+quick_parser(Ts) ->
+  quick_parser(Ts, []).
 
 quick_parser(Ts, _Opt) ->
   filter_form(parse_tokens(quickscan_form(Ts))).
