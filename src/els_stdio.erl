@@ -2,27 +2,27 @@
 
 -behaviour(els_transport).
 
--export([ start_listener/1
+-export([ start_listener/0
         , init/1
         , send/2
         ]).
 
--export([loop/4]).
+-export([ loop/3 ]).
 
 %%==============================================================================
 %% els_transport callbacks
 %%==============================================================================
--spec start_listener(pid()) -> {ok, pid()}.
-start_listener(Server) ->
+-spec start_listener() -> {ok, pid()}.
+start_listener() ->
   {ok, IoDevice} = application:get_env(erlang_ls, io_device),
-  {ok, proc_lib:spawn_link(?MODULE, init, [{Server, IoDevice}])}.
+  {ok, proc_lib:spawn_link(?MODULE, init, [{IoDevice}])}.
 
 -spec init({pid(), any()}) -> no_return().
-init({Server, IoDevice}) ->
+init({IoDevice}) ->
   lager:info("Starting stdio server..."),
   ok = io:setopts(IoDevice, [binary]),
-  ok = els_server:set_connection(Server, IoDevice),
-  ?MODULE:loop([], IoDevice, Server, [return_maps]).
+  ok = els_server:set_connection(IoDevice),
+  ?MODULE:loop([], IoDevice, [return_maps]).
 
 -spec send(any(), binary()) -> ok.
 send(Connection, Payload) ->
@@ -32,8 +32,8 @@ send(Connection, Payload) ->
 %% Listener loop function
 %%==============================================================================
 
--spec loop([binary()], any(), pid(), [any()]) -> no_return().
-loop(Lines, IoDevice, Server, JsonOpts) ->
+-spec loop([binary()], any(), [any()]) -> no_return().
+loop(Lines, IoDevice, JsonOpts) ->
   case io:get_line(IoDevice, "") of
     <<"\n">> ->
       Headers       = parse_headers(Lines),
@@ -42,10 +42,10 @@ loop(Lines, IoDevice, Server, JsonOpts) ->
       %% Use file:read/2 since it reads bytes
       {ok, Payload} = file:read(IoDevice, Length),
       Request       = jsx:decode(Payload, JsonOpts),
-      els_server:process_requests(Server, [Request]),
-      ?MODULE:loop([], IoDevice, Server, JsonOpts);
+      els_server:process_requests([Request]),
+      ?MODULE:loop([], IoDevice, JsonOpts);
     Line ->
-      ?MODULE:loop([Line | Lines], IoDevice, Server, JsonOpts)
+      ?MODULE:loop([Line | Lines], IoDevice, JsonOpts)
   end.
 
 -spec parse_headers([binary()]) -> [{binary(), binary()}].
