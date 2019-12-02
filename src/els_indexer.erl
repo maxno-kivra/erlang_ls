@@ -134,7 +134,6 @@ handle_call(_Request, _From, State) ->
 
 -spec handle_cast(any(), state()) -> {noreply, state()}.
 handle_cast({index_paths}, State) ->
-  els_server:show_message(<<"Indexing started...">>, ?MESSAGE_TYPE_INFO),
   AppPaths  = els_config:get(app_paths),
   DepsPaths = case application:get_env(erlang_ls, index_deps) of
                 {ok, true} -> els_config:get(app_paths);
@@ -149,8 +148,6 @@ handle_cast({index_paths}, State) ->
                   []
               end,
   [index_dir(Dir) || Dir <- lists:append([AppPaths, DepsPaths, OtpPaths])],
-  %% TODO: Fix async
-  els_server:show_message(<<"Indexing complete!">>, ?MESSAGE_TYPE_INFO),
   {noreply, State};
 handle_cast(_Msg, State) ->
   {noreply, State}.
