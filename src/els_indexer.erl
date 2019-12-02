@@ -1,7 +1,5 @@
 -module(els_indexer).
 
-%% TODO: Move all code in one place
-%% TODO: Rename tables
 -callback index(els_document:document()) -> ok.
 
 %% TODO: Solve API mix (gen_server and not)
@@ -152,7 +150,6 @@ handle_call(_Request, _From, State) ->
 
 -spec handle_cast(any(), state()) -> {noreply, state()}.
 handle_cast({index_app}, State) ->
-  %% TODO: Remove duplication
   [index_dir(Dir) || Dir <- els_config:get(app_paths)],
   {noreply, State};
 handle_cast({index_deps}, State) ->
