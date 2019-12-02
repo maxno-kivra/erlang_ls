@@ -10,9 +10,6 @@
         , index/1
         , index_dir/1
         , start_link/0
-        , index_app/0
-        , index_deps/0
-        , index_otp/0
         , index_paths/0
         ]).
 
@@ -80,33 +77,9 @@ index(Document) ->
   [register_reference(Uri, POI) || POI <- POIs],
   ok.
 
--spec index_app() -> any().
-index_app() ->
-  gen_server:cast(?SERVER, {index_app}).
-
--spec index_deps() -> any().
-index_deps() ->
-  case application:get_env(erlang_ls, index_deps) of
-    {ok, true}  -> gen_server:cast(?SERVER, {index_deps});
-    {ok, false} -> lager:info("Not indexing dependencies")
-  end.
-
--spec index_otp() -> any().
-index_otp() ->
-  case application:get_env(erlang_ls, index_otp) of
-    {ok, true}  -> gen_server:cast(?SERVER, {index_otp});
-    {ok, false} -> lager:info("Not indexing OTP")
-  end.
-
 -spec index_paths() -> ok.
 index_paths() ->
-  els_server:show_message(<<"Indexing started...">>, ?MESSAGE_TYPE_INFO),
-  index_app(),
-  index_deps(),
-  index_otp(),
-  %% TODO: Fix async
-  els_server:show_message(<<"Indexing complete!">>, ?MESSAGE_TYPE_INFO),
-  ok.
+  gen_server:cast(?SERVER, {index_paths}).
 
 -spec index_dir(string()) -> {non_neg_integer(), non_neg_integer()}.
 index_dir(Dir) ->
@@ -160,14 +133,24 @@ handle_call(_Request, _From, State) ->
   {noreply, State}.
 
 -spec handle_cast(any(), state()) -> {noreply, state()}.
-handle_cast({index_app}, State) ->
-  [index_dir(Dir) || Dir <- els_config:get(app_paths)],
-  {noreply, State};
-handle_cast({index_deps}, State) ->
-  [index_dir(Dir) || Dir <- els_config:get(deps_paths)],
-  {noreply, State};
-handle_cast({index_otp}, State) ->
-  [index_dir(Dir) || Dir <- els_config:get(otp_paths)],
+handle_cast({index_paths}, State) ->
+  els_server:show_message(<<"Indexing started...">>, ?MESSAGE_TYPE_INFO),
+  AppPaths  = els_config:get(app_paths),
+  DepsPaths = case application:get_env(erlang_ls, index_deps) of
+                {ok, true} -> els_config:get(app_paths);
+                _ ->
+                  lager:info("Not indexing dependencies"),
+                  []
+              end,
+  OtpPaths  = case application:get_env(erlang_ls, index_otp) of
+                {ok, true} -> els_config:get(otp_paths);
+                _ ->
+                  lager:info("Not indexing OTP"),
+                  []
+              end,
+  [index_dir(Dir) || Dir <- lists:append([AppPaths, DepsPaths, OtpPaths])],
+  %% TODO: Fix async
+  els_server:show_message(<<"Indexing complete!">>, ?MESSAGE_TYPE_INFO),
   {noreply, State};
 handle_cast(_Msg, State) ->
   {noreply, State}.
