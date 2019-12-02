@@ -157,8 +157,7 @@ init({tcp, Host, Port}) ->
   {ok, Socket} = gen_tcp:connect(Host, Port, Opts),
   {ok, #state{transport = tcp, connection = Socket}};
 init({stdio, IoDevice}) ->
-  Self = self(),
-  proc_lib:spawn_link(els_stdio, loop, [[], IoDevice, Self, ?JSON_OPTS]),
+  proc_lib:spawn_link(els_stdio, loop, [[], IoDevice, ?JSON_OPTS]),
   {ok, #state{transport = stdio, connection = IoDevice}}.
 
 -spec handle_call(any(), any(), state()) -> {reply, any(), state()}.
