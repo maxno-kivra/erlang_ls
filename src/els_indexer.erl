@@ -102,7 +102,9 @@ index_otp() ->
 -spec index_dir(string()) -> {non_neg_integer(), non_neg_integer()}.
 index_dir(Dir) ->
   Message = io_lib:format("Indexing in progress: ~p", [Dir]),
-  show_message(list_to_binary(lists:flatten(Message))),
+  els_server:show_message( list_to_binary(lists:flatten(Message))
+                         , ?MESSAGE_TYPE_INFO
+                         ),
   lager:info("Indexing directory. [dir=~s]", [Dir]),
   F = fun(FileName, {Succeeded, Failed}) ->
           case try_index_file(list_to_binary(FileName), async) of
@@ -220,12 +222,3 @@ purge_uri_references(Uri) ->
     MatchSpec = ets:fun2ms(fun({_K, #{uri => U}}) -> U =:= Uri end),
     _DeletedCount = ets:select_delete(references, MatchSpec),
     ok.
-
--spec show_message(binary()) -> ok.
-show_message(Message) ->
-  Method = <<"window/showMessage">>,
-  Params = #{ type    => ?MESSAGE_TYPE_INFO
-            , message => Message
-            },
-  %% TODO: No need for server
-  els_server:send_notification(els_server, Method, Params).

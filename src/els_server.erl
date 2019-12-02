@@ -24,7 +24,8 @@
 %% API
 -export([ process_requests/2
         , set_connection/2
-        , send_notification/3
+        , send_notification/2
+        , show_message/2
         ]).
 
 %% Testing
@@ -67,9 +68,17 @@ process_requests(Server, Requests) ->
 set_connection(Server, Connection) ->
   gen_server:call(Server, {set_connection, Connection}).
 
--spec send_notification(pid(), binary(), map()) -> ok.
-send_notification(Server, Method, Params) ->
-  gen_server:cast(Server, {notification, Method, Params}).
+-spec send_notification(binary(), map()) -> ok.
+send_notification(Method, Params) ->
+  gen_server:cast(?MODULE, {notification, Method, Params}).
+
+-spec show_message(binary(), show_message_type()) -> ok.
+show_message(Message, Type) ->
+  Method = <<"window/showMessage">>,
+  Params = #{ type    => Type
+            , message => Message
+            },
+  send_notification(Method, Params).
 
 %%==============================================================================
 %% Testing
