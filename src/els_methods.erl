@@ -93,9 +93,7 @@ initialize(Params, State) ->
    } = Params,
   InitOptions = maps:get(<<"initializationOptions">>, Params, #{}),
   ok = els_config:initialize(RootUri, Capabilities, InitOptions),
-  els_indexer:index_app(),
-  els_indexer:index_deps(),
-  els_indexer:index_otp(),
+  els_indexer:index_paths(),
   ok = els_provider:initialize(),
   Result =
     #{ capabilities =>

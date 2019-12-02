@@ -13,6 +13,7 @@
         , index_app/0
         , index_deps/0
         , index_otp/0
+        , index_paths/0
         ]).
 
 %% gen_server callbacks
@@ -96,6 +97,16 @@ index_otp() ->
     {ok, true}  -> gen_server:cast(?SERVER, {index_otp});
     {ok, false} -> lager:info("Not indexing OTP")
   end.
+
+-spec index_paths() -> ok.
+index_paths() ->
+  els_server:show_message(<<"Indexing started...">>, ?MESSAGE_TYPE_INFO),
+  index_app(),
+  index_deps(),
+  index_otp(),
+  %% TODO: Fix async
+  els_server:show_message(<<"Indexing complete!">>, ?MESSAGE_TYPE_INFO),
+  ok.
 
 -spec index_dir(string()) -> {non_neg_integer(), non_neg_integer()}.
 index_dir(Dir) ->
