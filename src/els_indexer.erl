@@ -83,10 +83,6 @@ index_paths() ->
 
 -spec index_dir(string()) -> {non_neg_integer(), non_neg_integer()}.
 index_dir(Dir) ->
-  Message = io_lib:format("Indexing in progress: ~p", [Dir]),
-  els_server:show_message( list_to_binary(lists:flatten(Message))
-                         , ?MESSAGE_TYPE_INFO
-                         ),
   lager:info("Indexing directory. [dir=~s]", [Dir]),
   F = fun(FileName, {Succeeded, Failed}) ->
           case try_index_file(list_to_binary(FileName), async) of
