@@ -83,10 +83,17 @@ initialize(RootUri, Capabilities, InitOptions) ->
   ok = set(deps_dirs     , DepsDirs),
   ok = set(include_dirs  , IncludeDirs),
   %% Calculated from the above
-  ok = set(app_paths     , app_paths(RootUri, false)),
-  ok = set(deps_paths    , deps_paths(RootUri, DepsDirs, false)),
+  AppPaths  = app_paths(RootUri, false),
+  DepsPaths = deps_paths(RootUri, DepsDirs, false),
+  OtpPaths  = otp_paths(OtpPath, false) -- ExcludePaths,
+  ok = set(app_paths     , AppPaths),
+  ok = set(deps_paths    , DepsPaths),
   ok = set(include_paths , include_paths(RootUri, IncludeDirs, false)),
-  ok = set(otp_paths     , otp_paths(OtpPath, false) -- ExcludePaths),
+  ok = set(otp_paths     , OtpPaths),
+  ok = set(index_paths   , lists:append([ AppPaths
+                                        , deps_paths()
+                                        , otp_paths()
+                                        ])),
   %% All (including subdirs) paths used to search files with file:path_open/3
   ok = set( search_paths
           , lists:append([ app_paths(RootUri, true)
@@ -226,3 +233,23 @@ subdirs_(Path, Files, Subdirs) ->
              end
          end,
   lists:foldl(Fold, Subdirs, Files).
+
+-spec deps_paths() -> [string()].
+deps_paths() ->
+  case application:get_env(erlang_ls, index_deps) of
+    {ok, true} ->
+      els_config:get(deps_paths);
+    _ ->
+      lager:info("Not indexing dependencies due to configuration."),
+      []
+  end.
+
+-spec otp_paths() -> [string()].
+otp_paths() ->
+  case application:get_env(erlang_ls, index_otp) of
+    {ok, true} ->
+      els_config:get(otp_paths);
+    _ ->
+      lager:info("Not indexing dependencies due to configuration."),
+      []
+  end.

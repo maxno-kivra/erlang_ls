@@ -130,20 +130,7 @@ handle_call(_Request, _From, State) ->
 
 -spec handle_cast(any(), state()) -> {noreply, state()}.
 handle_cast({index_paths}, State) ->
-  AppPaths  = els_config:get(app_paths),
-  DepsPaths = case application:get_env(erlang_ls, index_deps) of
-                {ok, true} -> els_config:get(app_paths);
-                _ ->
-                  lager:info("Not indexing dependencies"),
-                  []
-              end,
-  OtpPaths  = case application:get_env(erlang_ls, index_otp) of
-                {ok, true} -> els_config:get(otp_paths);
-                _ ->
-                  lager:info("Not indexing OTP"),
-                  []
-              end,
-  [index_dir(Dir) || Dir <- lists:append([AppPaths, DepsPaths, OtpPaths])],
+  [index_dir(Dir) || Dir <- els_config:get(index_paths)],
   {noreply, State};
 handle_cast(_Msg, State) ->
   {noreply, State}.
