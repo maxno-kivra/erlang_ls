@@ -38,6 +38,11 @@
 -include("erlang_ls.hrl").
 
 %%==============================================================================
+%% Macros
+%%==============================================================================
+-define(SERVER, ?MODULE).
+
+%%==============================================================================
 %% Record Definitions
 %%==============================================================================
 -record(state, { transport  :: module()
@@ -56,21 +61,21 @@
 %%==============================================================================
 -spec start_link(module()) -> {ok, pid()}.
 start_link(Transport) ->
-  {ok, Pid} = gen_server:start_link({local, ?MODULE}, ?MODULE, Transport, []),
+  {ok, Pid} = gen_server:start_link({local, ?SERVER}, ?MODULE, Transport, []),
   {ok, _} = Transport:start_listener(),
   {ok, Pid}.
 
 -spec process_requests([any()]) -> ok.
 process_requests(Requests) ->
-  gen_server:cast(?MODULE, {messages, Requests}).
+  gen_server:cast(?SERVER, {messages, Requests}).
 
 -spec set_connection(any()) -> ok.
 set_connection(Connection) ->
-  gen_server:call(?MODULE, {set_connection, Connection}).
+  gen_server:call(?SERVER, {set_connection, Connection}).
 
 -spec send_notification(binary(), map()) -> ok.
 send_notification(Method, Params) ->
-  gen_server:cast(?MODULE, {notification, Method, Params}).
+  gen_server:cast(?SERVER, {notification, Method, Params}).
 
 -spec show_message(binary(), show_message_type()) -> ok.
 show_message(Message, Type) ->
@@ -85,7 +90,7 @@ show_message(Message, Type) ->
 %%==============================================================================
 -spec reset_state() -> ok.
 reset_state() ->
-  gen_server:call(?MODULE, {reset_state}).
+  gen_server:call(?SERVER, {reset_state}).
 
 %%==============================================================================
 %% gen_server callbacks
