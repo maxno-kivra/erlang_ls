@@ -175,6 +175,8 @@ exit(_Params, State) ->
                shutdown -> 0;
                _        -> 1
              end,
+  %% Gracefully stop mnesia, to avoid table repairing on restart.
+  application:stop(mnesia),
   els_utils:halt(ExitCode).
 
 %%==============================================================================
