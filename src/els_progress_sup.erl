@@ -1,7 +1,7 @@
 %%==============================================================================
-%% Top Level Supervisor
+%% Supervisor for progress-report workers
 %%==============================================================================
--module(els_sup).
+-module(els_progress_sup).
 
 %%==============================================================================
 %% Behaviours
@@ -13,7 +13,9 @@
 %%==============================================================================
 
 %% API
--export([ start_link/0 ]).
+-export([ start_child/1
+        , start_link/0
+        ]).
 
 %% Supervisor Callbacks
 -export([ init/1 ]).
@@ -30,30 +32,21 @@
 start_link() ->
   supervisor:start_link({local, ?SERVER}, ?MODULE, []).
 
+-spec start_child(els_progress_server:token()) -> ok.
+start_child(Token) ->
+  supervisor:start_child(?MODULE, [Token]).
+
 %%==============================================================================
 %% Supervisor callbacks
 %%==============================================================================
 -spec init([]) -> {ok, {supervisor:sup_flags(), [supervisor:child_spec()]}}.
 init([]) ->
-  SupFlags = #{ strategy  => rest_for_one
-              , intensity => 5
-              , period    => 60
+  SupFlags = #{ strategy  => simple_one_for_one
+              , intensity => 0
+              , period    => 1
               },
-  ChildSpecs = [ #{ id       => els_config
-                  , start    => {els_config, start_link, []}
-                  , shutdown => brutal_kill
-                  }
-               , #{ id       => els_indexer
-                  , start    => {els_indexer, start_link, []}
-                  , shutdown => brutal_kill
-                  }
-               , #{ id       => els_providers_sup
-                  , start    => {els_providers_sup, start_link, []}
-                  , type     => supervisor
-                  }
-               , #{ id       => els_progress_sup
-                  , start    => {els_progress_sup, start_link, []}
-                  , type     => supervisor
-                  }
-               ],
+  ChildSpecs = [#{ id       => els_progress_server
+                 , start    => {els_progress_server, start_link, []}
+                 , shutdown => brutal_kill
+                 }],
   {ok, {SupFlags, ChildSpecs}}.

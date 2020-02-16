@@ -119,6 +119,14 @@ initialize(Params, State) ->
    , <<"capabilities">> := Capabilities
    } = Params,
   InitOptions = maps:get(<<"initializationOptions">>, Params, #{}),
+  %% TODO: Move
+  case maps:is_key(<<"workDoneToken">>, Params) of
+    true ->
+      Token = maps:get(<<"workDoneToken">>, Params),
+      els_progress_sup:start_child(Token);
+    false ->
+      ok
+  end,
   ok = els_config:initialize(RootUri, Capabilities, InitOptions),
   DbDir = application:get_env(erlang_ls, db_dir, default_db_dir()),
   els_db:install( node_name(RootUri, list_to_binary(els_config:get(otp_path)))
@@ -159,6 +167,10 @@ initialize(Params, State) ->
           , implementationProvider =>
               els_implementation_provider:is_enabled()
           }
+     , serverInfo =>
+         #{ name => server_name()
+          , version => server_version()
+          }
      },
   {response, Result, State#{status => initialized}}.
 
@@ -168,17 +180,7 @@ initialize(Params, State) ->
 
 -spec initialized(params(), state()) -> result().
 initialized(_Params, State) ->
-  %% Report to the user the server version
-  {ok,     App} = application:get_application(),
-  {ok, Version} = application:get_key(App, vsn),
-  lager:info("initialized: [App=~p] [Version=~p]", [App, Version]),
-  BinVersion = list_to_binary(Version),
-  Message = <<"Erlang LS version: ", BinVersion/binary>>,
-  Method  = <<"window/showMessage">>,
-  Params  = #{ type    => ?MESSAGE_TYPE_INFO
-             , message => Message
-             },
-  {notification, Method, Params, State#{status => initialized}}.
+  {noresponse, State}.
 
 %%==============================================================================
 %% shutdown
@@ -403,3 +405,13 @@ node_name(RootUri, OtpPath) ->
 -spec default_db_dir() -> string().
 default_db_dir() ->
   filename:basedir(user_cache, "erlang_ls").
+
+-spec server_name() -> binary().
+server_name() ->
+  <<"Erlang LS">>.
+
+-spec server_version() -> binary().
+server_version() ->
+  {ok, App}     = application:get_application(),
+  {ok, Version} = application:get_key(App, vsn),
+  list_to_binary(Version).

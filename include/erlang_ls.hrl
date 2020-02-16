@@ -14,6 +14,7 @@
 %%------------------------------------------------------------------------------
 %% Abstract Message
 %%------------------------------------------------------------------------------
+%% TODO: Move definition to jsonrpc module to avoid conflicts
 -type message() :: #{ jsonrpc := jsonrpc_vsn()
                     }.
 
